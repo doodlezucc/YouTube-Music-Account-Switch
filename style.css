@@ -83,3 +83,28 @@ ytmas {
 .ytmas button:hover {
     background-color: #aaa;
 }
+
+ytmas.switch {
+    background-color: transparent;
+}
+ytmas.switch.show div {
+    opacity: 1;
+}
+
+ytmas.switch div {
+    background-color: #000e;
+    width: auto;
+    height: auto;
+    display: flex;
+    padding: 50px;
+    border-radius: 20px;
+    opacity: 0;
+    transition: opacity 0.2s ease-out;
+}
+
+ytmas.switch h2 {
+    font-size: 25px;
+    margin: 0;
+    font-weight: bold;
+    color: white;
+}

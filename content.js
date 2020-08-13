@@ -32,9 +32,11 @@ function load() {
 function switchAccount() {
 	let onMusic = document.location.href.startsWith("https://music.");
 	if (lastPage != Pages.MUSIC && onMusic) {
+		displaySwitching();
 		switchOnMusic();
 		return true;
 	} else if (lastPage != Pages.VIDEO && !onMusic) {
+		displaySwitching();
 		switchOnVideo();
 		return true;
 	}
@@ -121,6 +123,21 @@ function extractAccounts() {
 	return json;
 }
 
+function displaySwitching() {
+	const thing = $("<ytmas/>")
+		.addClass("switch")
+		.append(
+			$("<div/>")
+				.append(
+					$("<h2/>").text("Switching account...")
+				)
+		)
+		.appendTo(document.body);
+	setTimeout(() => {
+		thing.addClass("show");
+	}, 1);
+}
+
 function displayAccountManager() {
 	const accounts = extractAccounts();
 	const row = function(label, id) {
@@ -163,8 +180,8 @@ function displayAccountManager() {
 					profile.video = $("ytmas #yt").val();
 					profile.music = $("ytmas #ytm").val();
 					lastPage = Pages.NONE;
-					switchAccount();
 					$("ytmas > div").remove();
+					switchAccount();
 				})
 			)
 	).appendTo(document.body);
