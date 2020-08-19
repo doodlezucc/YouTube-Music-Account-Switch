@@ -14,13 +14,13 @@ let lastPage = Pages.NONE;
 
 function save(page, cb) {
 	profile.page = page;
-	chrome.storage.sync.set({ profile: profile }, function() {
+	chrome.storage.local.set({ profile: profile }, function() {
 		cb();
 	});
 }
 
 function load() {
-	chrome.storage.sync.get(["profile"], function(result) {
+	chrome.storage.local.get(["profile"], function(result) {
 		if (!$.isEmptyObject(result)) {
 			profile = result.profile;
 			lastPage = profile.page;

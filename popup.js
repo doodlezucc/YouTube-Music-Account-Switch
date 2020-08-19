@@ -15,7 +15,7 @@ function save() {
 }
 
 function load() {
-    chrome.storage.sync.get(["profile"], function(result) {
+    chrome.storage.local.get(["profile"], function(result) {
         console.log(result);
         if (!$.isEmptyObject(result)) {
             profile = result["profile"];
