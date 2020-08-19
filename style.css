@@ -92,11 +92,12 @@ ytmas.switch.show div {
 }
 
 ytmas.switch div {
-    background-color: #000e;
+    background-color: #222e;
     width: auto;
     height: auto;
     display: flex;
     padding: 50px;
+    border: 2px solid white;
     border-radius: 20px;
     opacity: 0;
     transition: opacity 0.2s ease-out;
