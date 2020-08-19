@@ -96,9 +96,9 @@ ytmas.switch div {
     width: auto;
     height: auto;
     display: flex;
-    padding: 50px;
+    padding: 20px 30px;
     border: 2px solid white;
-    border-radius: 20px;
+    border-radius: 50px;
     opacity: 0;
     transition: opacity 0.2s ease-out;
 }

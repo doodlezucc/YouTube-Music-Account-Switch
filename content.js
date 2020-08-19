@@ -135,7 +135,7 @@ function displaySwitching() {
 		.appendTo(document.body);
 	setTimeout(() => {
 		thing.addClass("show");
-	}, 1);
+	}, 10);
 }
 
 function displayAccountManager() {
