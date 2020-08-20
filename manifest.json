@@ -8,16 +8,18 @@
 	},
 	"permissions": [
 		"storage",
-		"declarativeContent"
+		"tabs"
 	],
 	"page_action": {
-		"default_popup": "popup.html"
+		"default_popup": "popup.html",
+		"default_icon": {
+			"128": "icon.png"
+		}
 	},
 	"background": {
 		"scripts": [
 			"background.js"
-		],
-		"persistent": false
+		]
 	},
 	"content_scripts": [
 		{
