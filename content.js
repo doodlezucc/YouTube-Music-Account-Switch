@@ -64,6 +64,7 @@ function findAsap(queryFn, cb) {
 	let jq = queryFn();
 	if (jq.length) {
 		cb(jq);
+		return;
 	}
 
 	const interval = setInterval(() => {
