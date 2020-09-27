@@ -56,9 +56,18 @@ function switchOnMusic() {
 	}
 }
 
+/**
+ * @param {() => JQuery} queryFn 
+ * @param {(jq: JQuery)} cb 
+ */
 function findAsap(queryFn, cb) {
+	let jq = queryFn();
+	if (jq.length) {
+		cb(jq);
+	}
+
 	const interval = setInterval(() => {
-		const jq = queryFn();
+		jq = queryFn();
 		if (jq.length) {
 			clearInterval(interval);
 			cb(jq);
@@ -101,8 +110,12 @@ function switchOnVideo() {
 		}
 	});
 	findAsap(() => $("ytd-popup-container"), (jq) => {
+		console.log("found popup container!");
 		popupObserver.observe(jq[0], { childList: true });
-		$("#avatar-btn").click();
+		findAsap(() => $("#avatar-btn"), (jq) => {
+			console.log("found avatar btn!");
+			jq.click();
+		});
 	});
 }
 
