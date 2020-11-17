@@ -25,6 +25,8 @@ function load() {
 			profile = result.profile;
 			lastPage = profile.page;
 			switchAccount();
+		} else {
+			displayAccountManager();
 		}
 	});
 }
@@ -196,7 +198,8 @@ function displayAccountManager() {
 						$("ytmas > div").remove();
 						displaySwitching();
 						change(() => {
-							profile.music.switchFn();
+							const acc = onMusic ? profile.music : profile.video;
+							acc.switchFn();
 						});
 					})
 				)

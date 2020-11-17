@@ -4,7 +4,6 @@ chrome.runtime.onInstalled.addListener(function(details) {
             chrome.tabs.onUpdated.addListener(function listener(tabId, info) {
                 if (info.status === "complete" && tabId === tab.id) {
                     chrome.tabs.onUpdated.removeListener(listener);
-                    chrome.tabs.sendMessage(tab.id, { action: "auto_extract" });
                 }
             });
         });
