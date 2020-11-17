@@ -2,6 +2,10 @@
 
 A browser extension that automatically switches Google accounts when visiting [www.youtube.com](https://www.youtube.com) and [music.youtube.com](https://music.youtube.com).
 
+### Currently not working!
+
+**Apparently, they changed YouTube Music to a point where the accounts are no longer found in the HTML itself.**
+
 On installation, you get to choose which account should be used on each site. You may also change this at any time by clicking the extension icon.
 
 YTMAS fully relies on how YouTube structures their websites.
