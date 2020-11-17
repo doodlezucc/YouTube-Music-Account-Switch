@@ -21,6 +21,7 @@ function save(page, cb) {
 
 function load() {
 	chrome.storage.local.get(["profile"], function(result) {
+		console.log(result);
 		if (!$.isEmptyObject(result)) {
 			profile = result.profile;
 			lastPage = profile.page;
@@ -29,15 +30,12 @@ function load() {
 	});
 }
 
+
+const onMusic = document.location.href.startsWith("https://music.");
+
 function switchAccount() {
-	let onMusic = document.location.href.startsWith("https://music.");
-	if (lastPage != Pages.MUSIC && onMusic) {
-		displaySwitching();
-		switchOnMusic();
-		return true;
-	} else if (lastPage != Pages.VIDEO && !onMusic) {
-		displaySwitching();
-		switchOnVideo();
+	if ((lastPage != Pages.MUSIC && onMusic) || (lastPage != Pages.VIDEO && !onMusic)) {
+		performAccountSwitch();
 		return true;
 	}
 	return false;
@@ -47,13 +45,8 @@ function isEmail(s) {
 	return s.includes("@");
 }
 
-function switchOnMusic() {
-	for (let acc of extractAccounts()) {
-		const em = isEmail(profile.music);
-		if ((em && acc.email === profile.music) || (!em && acc.name === profile.music)) {
-			save(Pages.MUSIC, () => document.location.href = acc.switch_url);
-		}
-	}
+function getSignInUrl(accIndex) {
+	return ytcfg.data_.SIGNIN_URL.replace("0", accIndex);
 }
 
 /**
@@ -76,65 +69,74 @@ function findAsap(queryFn, cb) {
 	}, 50);
 }
 
-function switchOnVideo() {
+function performAccountSwitch() {
+	displaySwitching();
+	extractAccounts((accounts) => {
+		let targetAcc = onMusic ? profile.music : profile.video;
+		for (let acc of accounts) {
+			if (acc.name === targetAcc.name && acc.email === targetAcc.email) {
+				acc.switchFn();
+				break;
+			}
+		}
+	});
+}
+
+function openYTAccountChangeDialog(cb) {
+	const popupContainerTag = (onMusic ? "ytmusic" : "ytd") + "-popup-container";
+	const avatarBtnQuery = onMusic ? "ytmusic-settings-button > paper-icon-button" : "#avatar-btn";
 	const popupObserver = new MutationObserver((mutations) => {
 		for (let m of mutations) {
 			if (m.addedNodes.length) {
 				if (m.addedNodes[0].nodeName === "IRON-DROPDOWN") {
 					$(m.addedNodes).find("#submenu").first().each(function() {
-						const submenu = $("ytd-popup-container #submenu");
-
-						if (!isEmail(profile.video)) {
-							findAsap(() => submenu.find("ytd-account-item-renderer"), (accounts) => {
-								accounts.each(function() {
-									if ($(this).find("#channel-title").text().trim() === profile.video) {
-										save(Pages.VIDEO, () => { $(this).click() });
-										return false;
-									}
-								});
-							});
-						} else {
-							findAsap(() => submenu.find("ytd-account-item-section-renderer"), (sections) => {
-								sections.each(function() {
-									if ($(this).find("a").text().trim() === profile.video) {
-										save(Pages.VIDEO, () => { $(this).find("ytd-account-item-renderer").first().click() });
-										return false;
-									}
-								});
-							});
-						}
-
-						findAsap(() => $(m.addedNodes).find("ytd-compact-link-renderer"), (links) => links.get(3).click());
+						findAsap(() => $(m.addedNodes).find("ytd-compact-link-renderer"), (links) => {
+							links.get(onMusic ? 2 : 3).click();
+						});
+						cb($(popupContainerTag + " #submenu"));
 					});
 				}
 			}
 		}
 	});
-	findAsap(() => $("ytd-popup-container"), (jq) => {
+	findAsap(() => $(popupContainerTag), (jq) => {
 		console.log("found popup container!");
 		popupObserver.observe(jq[0], { childList: true });
-		findAsap(() => $("#avatar-btn"), (jq) => {
+		findAsap(() => $(avatarBtnQuery), (jq) => {
 			console.log("found avatar btn!");
 			jq.click();
 		});
 	});
 }
 
-function extractAccounts() {
-	let json;
-	$(document.head).children("script").each(function() {
-		const text = this.textContent;
-		if (text.substr(0, 10).trim().startsWith("ytcfg")) {
-			const q = "\"ACCOUNTS\"";
-			if (text.includes(q)) {
-				const start = text.indexOf(q) + q.length + 1;
-				const jsonString = text.slice(start, text.indexOf("]", start) + 1);
-				json = JSON.parse(jsonString);
-				return false;
-			}
-		}
+class YTAccount {
+	constructor(name, email, switchFn) {
+		this.name = name;
+		this.email = email;
+		this.switchFn = switchFn;
+	}
+}
+
+/**
+ * 
+ * @param {(accounts: Array.<YTAccount>)} cb 
+ */
+function extractAccounts(cb) {
+	openYTAccountChangeDialog((submenu) => {
+		const accounts = [];
+		findAsap(() => submenu.find("ytd-account-item-section-renderer"), (sections) => {
+			sections.each(function() {
+				console.log(this);
+				const email = (onMusic ? $(this).find("yt-formatted-string") : $(this).find("a"))[0].textContent.trim();
+				$(this).find("ytd-account-item-renderer").each(function() {
+					const html = this;
+					const name = $(this).find("#channel-title").text().trim();
+					accounts.push(new YTAccount(name, email, () => { html.click() }));
+				});
+			});
+			cb(accounts);
+		});
 	});
-	return json;
 }
 
 function displaySwitching() {
@@ -153,52 +155,48 @@ function displaySwitching() {
 }
 
 function displayAccountManager() {
-	const accounts = extractAccounts();
-	const row = function(label, id) {
-		return $("<tr/>").append(
-			$("<td/>").text(label + ":"),
-			$("<td/>").append(
-				$("<select/>")
-					.attr("id", id)
-					.append(jQuery.map(accounts, acc => $("<option/>").text(acc.email)))
-					.append($("<option/>").text("Enter name instead..."))
-					.on("change", function() {
-						if (this.value.endsWith("...")) {
-							$(this).replaceWith(
-								$("<input/>")
-									.attr("id", id)
-									.attr("placeholder", "Name or email address...")
-							);
-							$("ytmas").find("#" + id).focus();
-						}
-					})
-			)
-		);
-	}
+	extractAccounts((accounts) => {
+		console.log("found accounts");
+		console.log(accounts);
+		const row = function(label, id) {
+			return $("<tr/>").append(
+				$("<td/>").text(label + ":"),
+				$("<td/>").append(
+					$("<select/>")
+						.attr("id", id)
+						.append(jQuery.map(accounts, (acc, index) => $("<option/>").text(acc.name + " (" + acc.email + ")").val(index)))
+				)
+			);
+		}
 
-	$("<ytmas/>").append(
-		$("<div/>")
-			.addClass("ytmas init")
-			.append(
-				$("<span/>").append(
-					$("<img/>").attr("src", chrome.runtime.getURL("icon.png")),
-					$("<h1/>").text("Setup your YouTube accounts"),
-				),
-				$("<div/>"),
-				$("<p/>").text("Pick your preferred Google account for each site."),
-				$("<table/>").append(
-					row("YouTube", "yt"),
-					row("YouTube Music", "ytm")
-				),
-				$("<button/>").text("Save").on("click", () => {
-					profile.video = $("ytmas #yt").val();
-					profile.music = $("ytmas #ytm").val();
-					lastPage = Pages.NONE;
-					$("ytmas > div").remove();
-					switchAccount();
-				})
-			)
-	).appendTo(document.body);
+		$("<ytmas/>").append(
+			$("<div/>")
+				.addClass("ytmas init")
+				.append(
+					$("<span/>").append(
+						$("<img/>").attr("src", chrome.runtime.getURL("icon.png")),
+						$("<h1/>").text("Setup your YouTube accounts"),
+					),
+					$("<div/>"),
+					$("<p/>").text("Pick your preferred Google account for each site."),
+					$("<table/>").append(
+						row("YouTube", "yt"),
+						row("YouTube Music", "ytm")
+					),
+					$("<button/>").text("Save").on("click", () => {
+						profile.video = accounts[$("ytmas #yt").val()];
+						profile.music = accounts[$("ytmas #ytm").val()];
+						console.log(profile);
+						lastPage = Pages.NONE;
+						$("ytmas > div").remove();
+						displaySwitching();
+						save(Pages.MUSIC, () => {
+							profile.music.switchFn();
+						});
+					})
+				)
+		).appendTo(document.body);
+	});
 }
 
 chrome.runtime.onMessage.addListener(function(request, sender) {
