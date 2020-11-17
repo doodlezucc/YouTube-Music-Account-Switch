@@ -6,10 +6,10 @@ let profile = {
     music: ""
 };
 
-function save() {
+function change() {
     chrome.tabs.query({ currentWindow: true, active: true }, function(tabs) {
         var activeTab = tabs[0];
-        chrome.tabs.sendMessage(activeTab.id, { action: "apply_changes", profile: { video: yt.val(), music: ytm.val() } });
+        chrome.tabs.sendMessage(activeTab.id, { action: "auto_extract" });
         window.close();
     });
 }
@@ -19,8 +19,8 @@ function load() {
         console.log(result);
         if (!$.isEmptyObject(result)) {
             profile = result["profile"];
-            yt.val(profile.video);
-            ytm.val(profile.music);
+            yt.text(profile.video.name + " (" + profile.video.email + ")");
+            ytm.text(profile.music.name + " (" + profile.music.email + ")");
         }
     });
 }
@@ -30,6 +30,6 @@ $(document).ready(() => {
     ytm = $("#ytm");
     load();
     $("button").on("click", function() {
-        save();
+        change();
     });
 });

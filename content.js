@@ -12,8 +12,8 @@ let profile = {
 
 let lastPage = Pages.NONE;
 
-function save(page, cb) {
-	profile.page = page;
+function change(cb) {
+	profile.page = onMusic ? Pages.MUSIC : Pages.VIDEO;
 	chrome.storage.local.set({ profile: profile }, function() {
 		cb();
 	});
@@ -21,7 +21,6 @@ function save(page, cb) {
 
 function load() {
 	chrome.storage.local.get(["profile"], function(result) {
-		console.log(result);
 		if (!$.isEmptyObject(result)) {
 			profile = result.profile;
 			lastPage = profile.page;
@@ -75,7 +74,9 @@ function performAccountSwitch() {
 		let targetAcc = onMusic ? profile.music : profile.video;
 		for (let acc of accounts) {
 			if (acc.name === targetAcc.name && acc.email === targetAcc.email) {
-				acc.switchFn();
+				change(() => {
+					acc.switchFn();
+				});
 				break;
 			}
 		}
@@ -100,10 +101,8 @@ function openYTAccountChangeDialog(cb) {
 		}
 	});
 	findAsap(() => $(popupContainerTag), (jq) => {
-		console.log("found popup container!");
 		popupObserver.observe(jq[0], { childList: true });
 		findAsap(() => $(avatarBtnQuery), (jq) => {
-			console.log("found avatar btn!");
 			jq.click();
 		});
 	});
@@ -126,7 +125,6 @@ function extractAccounts(cb) {
 		const accounts = [];
 		findAsap(() => submenu.find("ytd-account-item-section-renderer"), (sections) => {
 			sections.each(function() {
-				console.log(this);
 				const email = (onMusic ? $(this).find("yt-formatted-string") : $(this).find("a"))[0].textContent.trim();
 				$(this).find("ytd-account-item-renderer").each(function() {
 					const html = this;
@@ -156,15 +154,23 @@ function displaySwitching() {
 
 function displayAccountManager() {
 	extractAccounts((accounts) => {
-		console.log("found accounts");
-		console.log(accounts);
-		const row = function(label, id) {
+		const row = function(label, id, account) {
+			let i = 0;
+			if (account) {
+				accounts.forEach((acc, index) => {
+					if (acc.name === account.name && acc.email === account.email) {
+						i = index;
+					}
+				});
+			}
 			return $("<tr/>").append(
 				$("<td/>").text(label + ":"),
 				$("<td/>").append(
 					$("<select/>")
 						.attr("id", id)
-						.append(jQuery.map(accounts, (acc, index) => $("<option/>").text(acc.name + " (" + acc.email + ")").val(index)))
+						.append(
+							jQuery.map(accounts, (acc, index) => $("<option/>").text(acc.name + " (" + acc.email + ")").val(index))
+						).val(i)
 				)
 			);
 		}
@@ -180,17 +186,16 @@ function displayAccountManager() {
 					$("<div/>"),
 					$("<p/>").text("Pick your preferred Google account for each site."),
 					$("<table/>").append(
-						row("YouTube", "yt"),
-						row("YouTube Music", "ytm")
+						row("YouTube", "yt", profile.video),
+						row("YouTube Music", "ytm", profile.music)
 					),
 					$("<button/>").text("Save").on("click", () => {
 						profile.video = accounts[$("ytmas #yt").val()];
 						profile.music = accounts[$("ytmas #ytm").val()];
-						console.log(profile);
 						lastPage = Pages.NONE;
 						$("ytmas > div").remove();
 						displaySwitching();
-						save(Pages.MUSIC, () => {
+						change(() => {
 							profile.music.switchFn();
 						});
 					})
@@ -203,10 +208,6 @@ chrome.runtime.onMessage.addListener(function(request, sender) {
 	if (!sender.tab) {
 		if (request.action === "auto_extract") {
 			displayAccountManager();
-		} else if (request.action === "apply_changes") {
-			profile = request.profile;
-			lastPage = Pages.NONE;
-			switchAccount();
 		}
 	}
 });
